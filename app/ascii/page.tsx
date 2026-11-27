@@ -37,7 +37,8 @@ export default function AsciiStudio(){
    else ctx.fillStyle=fg;
    ctx.fillText(ch,x*cellW,y*cellH);
   }output+=line+"\n";}
-  if(overlayText.trim()){const time=media instanceof HTMLVideoElement?media.currentTime:performance.now()/1000;ctx.save();ctx.fillStyle=overlayColor;ctx.textAlign="center";ctx.textBaseline="middle";const pulse=overlayMode==="pulse"?.82+.18*Math.sin(time*4):1;const move=overlayMode==="scroll"?((time*90)%(w+300))-150:0;ctx.font=`${Math.max(12,fontSize*2*pulse)}px ${font}`;ctx.shadowColor="#000";ctx.shadowBlur=5;ctx.fillText(overlayText,w/2+move,h*.88,Math.max(40,w-12));ctx.restore();}\n  if(!manualEdit.current)textRef.current=output;sourceCanvas.current=sample;
+  if(overlayText.trim()){const time=media instanceof HTMLVideoElement?media.currentTime:performance.now()/1000;ctx.save();ctx.fillStyle=overlayColor;ctx.textAlign="center";ctx.textBaseline="middle";const pulse=overlayMode==="pulse"?.82+.18*Math.sin(time*4):1;const move=overlayMode==="scroll"?((time*90)%(w+300))-150:0;ctx.font=`${Math.max(12,fontSize*2*pulse)}px ${font}`;ctx.shadowColor="#000";ctx.shadowBlur=5;ctx.fillText(overlayText,w/2+move,h*.88,Math.max(40,w-12));ctx.restore();}
+  if(!manualEdit.current)textRef.current=output;sourceCanvas.current=sample;
  },[width,fontSize,font,chars,colorMode,fg,bg,brightness,contrast,detail,invert,dither,fit,edgeMode,gradientStart,gradientEnd,overlayText,overlayMode,overlayColor]);
  const renderCurrent=useCallback(()=>{if(source?.kind==="image"&&imageRef.current)draw(imageRef.current);if(source?.kind==="video"&&videoRef.current)draw(videoRef.current)},[source,draw]);
  useEffect(()=>{renderCurrent()},[renderCurrent]);
@@ -70,7 +71,7 @@ export default function AsciiStudio(){
    <label>Contrast <strong>{contrast}%</strong><input type="range" min="0" max="220" value={contrast} onChange={e=>setContrast(+e.target.value)}/></label>
    <label>Color mode<select value={colorMode} onChange={e=>setColorMode(e.target.value)}><option value="mono">Single color</option><option value="color">Original image colors</option><option value="gradient">Color gradient</option><option value="green">Terminal green</option><option value="amber">Retro amber</option></select></label>
    {colorMode==="mono"&&<label>Text color<input type="color" value={fg} onChange={e=>setFg(e.target.value)}/></label>}
-   {(colorMode==="gradient"||gradient)&&<><label>Gradient start<input type="color" value={gradientStart} onChange={e=>setGradientStart(e.target.value)}/></label><label>Gradient end<input type="color" value={gradientEnd} onChange={e=>setGradientEnd(e.target.value)}/></label></>}
+   {colorMode==="gradient"&&<><label>Gradient start<input type="color" value={gradientStart} onChange={e=>setGradientStart(e.target.value)}/></label><label>Gradient end<input type="color" value={gradientEnd} onChange={e=>setGradientEnd(e.target.value)}/></label></>}
    <label>Background<input type="color" value={bg} onChange={e=>setBg(e.target.value)}/></label>
    <label className="asciiCheck"><input type="checkbox" checked={invert} onChange={e=>setInvert(e.target.checked)}/> Invert luminance</label>
    <label className="asciiCheck"><input type="checkbox" checked={dither} onChange={e=>setDither(e.target.checked)}/> Ordered dithering</label>
