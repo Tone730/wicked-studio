@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   },
   description: "A browser-based creative workspace for animated GIFs, video loops, pixel art, typography, textures and sound design.",
   applicationName: "Wicked Studio",
-  keywords: ["GIF creator", "video to GIF", "pixel art", "sprite sheets", "motion graphics", "texture generator", "sound design"],
+  keywords: ["GIF creator", "ASCII art", "image to ASCII", "video to ASCII", "video to GIF", "pixel art", "sprite sheets", "motion graphics", "texture generator", "sound design", "ASCII video converter"],
   icons: { icon: "/icon.svg" },
   openGraph: {
     type: "website",
