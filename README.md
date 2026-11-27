@@ -50,3 +50,8 @@ This repository is configured for the OpenNext Cloudflare adapter. In Cloudflare
 - Root directory: repository root
 
 Set `REPLICATE_API_TOKEN` in the Worker build/deployment environment as a secret for AI image generation. Do not commit secrets to GitHub.
+
+
+## Creative editor expansion
+
+See [docs/OPEN_SOURCE_TOOLCHAIN.md](docs/OPEN_SOURCE_TOOLCHAIN.md) for the open-source integration strategy, no-key/local-first policy, license notes, and browser compatibility requirements. The new interactive Design & Compositing workspace is available at `/design` and from the Creator Dashboard.
