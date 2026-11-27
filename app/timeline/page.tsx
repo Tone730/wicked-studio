@@ -41,7 +41,7 @@ export default function TimelineStudio(){
     if(c.kind==="video"&&c.src){const video=document.createElement("video");video.src=c.src;video.preload="auto";video.playsInline=true;video.crossOrigin="anonymous";await new Promise<void>((resolve,reject)=>{video.onloadedmetadata=()=>resolve();video.onerror=()=>reject(new Error("Could not load video: "+c.name))});video.currentTime=Math.min(c.offset,Math.max(0,video.duration-.05));await new Promise<void>(resolve=>{if(video.readyState>=2)resolve();else{video.onseeked=()=>resolve();window.setTimeout(resolve,1500)}});const source=audioContext.createMediaElementSource(video),gain=audioContext.createGain();gain.gain.value=Math.max(0,Math.min(1,c.volume??1));source.connect(gain).connect(audioOut);videos.set(c.id,video);media.push(video)}
    }
    for(const c of clips.filter(x=>x.kind==="audio"&&x.src)){
-    const response=await fetch(c.src!);const buffer=await audioContext.decodeAudioData(await response.arrayBuffer());const source=audioContext.createBufferSource(),gain=audioContext.createGain();source.buffer=buffer;const volume=Math.max(0,Math.min(1,c.volume??1)),fadeIn=Math.min(c.duration,Math.max(0,c.fadeIn??0)),fadeOut=Math.min(c.duration,Math.max(0,c.fadeOut??0));gain.gain.setValueAtTime(fadeIn>0?0:volume,audioContext.currentTime);source.connect(gain).connect(audioOut);audioGains.push(gain);sources.push(source);(source as AudioBufferSourceNode&{wickedClip?:Clip}).wickedClip={...c,volume,fadeIn,fadeOut};(source as AudioBufferSourceNode&{wickedClip?:Clip}).wickedClip=c;
+    const response=await fetch(c.src!);const buffer=await audioContext.decodeAudioData(await response.arrayBuffer());const source=audioContext.createBufferSource(),gain=audioContext.createGain();source.buffer=buffer;const volume=Math.max(0,Math.min(1,c.volume??1)),fadeIn=Math.min(c.duration,Math.max(0,c.fadeIn??0)),fadeOut=Math.min(c.duration,Math.max(0,c.fadeOut??0));gain.gain.setValueAtTime(fadeIn>0?0:volume,audioContext.currentTime);source.connect(gain).connect(audioOut);audioGains.push(gain);sources.push(source);(source as AudioBufferSourceNode&{wickedClip?:Clip}).wickedClip={...c,volume,fadeIn,fadeOut};
    }
    const mime=["video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"].find(t=>MediaRecorder.isTypeSupported(t));if(!mime)throw new Error("This browser cannot encode WebM video");
    for(const track of audioOut.stream.getAudioTracks())stream.addTrack(track);
@@ -65,10 +65,10 @@ export default function TimelineStudio(){
   }catch(e){if(recorder?.state==="recording")recorder.stop();setStatus(e instanceof Error?e.message:"Video export failed")}
   finally{media.forEach(v=>{v.pause();v.removeAttribute("src");v.load()});sources.forEach(x=>{try{x.stop()}catch{}});stream.getTracks().forEach(t=>t.stop());audioOut.stream.getTracks().forEach(t=>t.stop());await audioContext.close().catch(()=>{});if(objectUrl)window.setTimeout(()=>URL.revokeObjectURL(objectUrl),30000);setExporting(false);setExportProgress(0)}
  };
- const preview=clips.find(c=>c.start<=playhead&&c.start+c.duration>playhead&&c.kind!=="audio")||selectedClip;
+ const preview=clips.filter(c=>c.start<=playhead&&c.start+c.duration>playhead&&c.kind!=="audio").sort((a,b)=>b.start-a.start)[0]||selectedClip;
  useEffect(()=>{if(!playing)return;const timer=window.setInterval(()=>setPlayhead(p=>{const end=Math.max(20,...clips.map(c=>c.start+c.duration));if(p>=end){setPlaying(false);return 0}return p+.05}),50);return()=>window.clearInterval(timer)},[playing,clips]);
  useEffect(()=>{ 
-  const activeVideo=clips.find(c=>c.kind==="video"&&c.src&&c.start<=playhead&&c.start+c.duration>playhead);
+  const activeVideo=clips.filter(c=>c.kind==="video"&&c.src&&c.start<=playhead&&c.start+c.duration>playhead).sort((a,b)=>b.start-a.start)[0];
   const videoEl=videoRef.current;
   if(videoEl){
    if(activeVideo){
