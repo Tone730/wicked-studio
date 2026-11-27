@@ -81,7 +81,7 @@ export default function TimelineStudio(){
   clips.filter(c=>c.kind==="audio"&&c.src).forEach(c=>{
    const el=audioRefs.current[c.id];if(!el)return;
    const active=c.start<=playhead&&c.start+c.duration>playhead;
-   el.volume=Math.min(1,Math.max(0,c.volume??1));
+   el.volume=Math.min(1,Math.max(0,(c.volume??1)*clipOpacity(c,playhead)));
    if(active){const target=Math.max(0,c.offset+playhead-c.start);if(Math.abs(el.currentTime-target)>.25)el.currentTime=target;if(playing)void el.play().catch(()=>setStatus("Tap Play to allow audio playback"));else el.pause()}
    else el.pause();
   });
