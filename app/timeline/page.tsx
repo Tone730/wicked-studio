@@ -53,12 +53,10 @@ export default function TimelineStudio(){
    const frame=()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
    while(audioContext.currentTime-startAt<duration){
     const t=Math.max(0,audioContext.currentTime-startAt);ctx.fillStyle="#08070c";ctx.fillRect(0,0,canvas.width,canvas.height);
-    const activeVideo=clips.filter(c=>c.kind==="video"&&c.start<=t&&c.start+c.duration>t).sort((a,b)=>b.start-a.start)[0];
-    for(const [id,v] of videos){const c=clips.find(x=>x.id===id)!;const active=c.id===activeVideo?.id;if(active){const target=Math.min(c.offset+t-c.start,Math.max(0,v.duration-.05));if(Math.abs(v.currentTime-target)>.35){try{v.currentTime=target}catch{}}if(v.paused)void v.play().catch(()=>{})}else if(!v.paused)v.pause()}
-    const activeImage=clips.filter(c=>c.kind==="image"&&c.start<=t&&c.start+c.duration>t).sort((a,b)=>b.start-a.start)[0];
-    const activeVisual=[activeVideo,activeImage].filter((c):c is Clip=>!!c).sort((a,b)=>b.start-a.start)[0];
-    if(activeVisual?.kind==="video"){const activeVideoClip=activeVisual;const v=videos.get(activeVideoClip.id)!;const target=activeVideoClip.offset+t-activeVideoClip.start;if(Math.abs(v.currentTime-target)>.35&&Number.isFinite(target)&&target<v.duration-.05){try{v.currentTime=target}catch{}}if(v.readyState>=2){const scale=Math.min(canvas.width/v.videoWidth,canvas.height/v.videoHeight),w=v.videoWidth*scale,h=v.videoHeight*scale;ctx.globalAlpha=clipOpacity(activeVisual,t);ctx.drawImage(v,(canvas.width-w)/2,(canvas.height-h)/2,w,h);ctx.globalAlpha=1}}
-    else if(activeVisual?.kind==="image"){const img=images.get(activeVisual.id)!;const scale=Math.min(canvas.width/img.width,canvas.height/img.height),w=img.width*scale,h=img.height*scale;ctx.globalAlpha=clipOpacity(activeVisual,t);ctx.drawImage(img,(canvas.width-w)/2,(canvas.height-h)/2,w,h);ctx.globalAlpha=1}
+    const activeMediaVisuals=clips.filter(c=>(c.kind==="video"||c.kind==="image")&&c.start<=t&&c.start+c.duration>t).sort((a,b)=>a.start-b.start);
+    const activeVideoIds=new Set(activeMediaVisuals.filter(c=>c.kind==="video").map(c=>c.id));
+    for(const [id,v] of videos){const c=clips.find(x=>x.id===id)!;if(activeVideoIds.has(id)){const target=Math.min(c.offset+t-c.start,Math.max(0,v.duration-.05));if(Math.abs(v.currentTime-target)>.35){try{v.currentTime=target}catch{}}if(v.paused)void v.play().catch(()=>{})}else if(!v.paused)v.pause()}
+    for(const visual of activeMediaVisuals){if(visual.kind==="video"){const v=videos.get(visual.id);if(v?.readyState>=2&&v.videoWidth&&v.videoHeight){const scale=Math.min(canvas.width/v.videoWidth,canvas.height/v.videoHeight),w=v.videoWidth*scale,h=v.videoHeight*scale;ctx.globalAlpha=clipOpacity(visual,t);ctx.drawImage(v,(canvas.width-w)/2,(canvas.height-h)/2,w,h);ctx.globalAlpha=1}}else{const img=images.get(visual.id);if(img){const scale=Math.min(canvas.width/img.width,canvas.height/img.height),w=img.width*scale,h=img.height*scale;ctx.globalAlpha=clipOpacity(visual,t);ctx.drawImage(img,(canvas.width-w)/2,(canvas.height-h)/2,w,h);ctx.globalAlpha=1}}}
     const textClips=clips.filter(c=>c.kind==="text"&&c.start<=t&&c.start+c.duration>t);for(const c of textClips){ctx.save();ctx.globalAlpha=clipOpacity(c,t);ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="bold 58px system-ui";ctx.shadowColor="#000";ctx.shadowBlur=12;ctx.fillText(c.text||"",canvas.width/2,canvas.height*.82,canvas.width-100);ctx.restore()}
     setExportProgress(Math.min(100,Math.round(t/duration*100)));await frame();
    }
@@ -67,7 +65,7 @@ export default function TimelineStudio(){
   finally{media.forEach(v=>{v.pause();v.removeAttribute("src");v.load()});sources.forEach(x=>{try{x.stop()}catch{}});stream.getTracks().forEach(t=>t.stop());audioOut.stream.getTracks().forEach(t=>t.stop());await audioContext.close().catch(()=>{});if(objectUrl)window.setTimeout(()=>URL.revokeObjectURL(objectUrl),30000);setExporting(false);setExportProgress(0)}
  };
  const preview=clips.filter(c=>c.start<=playhead&&c.start+c.duration>playhead&&c.kind!=="audio").sort((a,b)=>b.start-a.start)[0]||selectedClip;
- useEffect(()=>{if(!playing)return;const timer=window.setInterval(()=>setPlayhead(p=>{const end=Math.max(20,...clips.map(c=>c.start+c.duration));if(p>=end){setPlaying(false);return 0}return p+.05}),50);return()=>window.clearInterval(timer)},[playing,clips]);
+ useEffect(()=>{if(!playing)return;let frame=0,last=performance.now();const tick=(now:number)=>{const delta=Math.min(.1,(now-last)/1000);last=now;setPlayhead(p=>{const end=Math.max(20,...clips.map(c=>c.start+c.duration)),next=p+delta;if(next>=end){setPlaying(false);return 0}return next});frame=requestAnimationFrame(tick)};frame=requestAnimationFrame(tick);return()=>cancelAnimationFrame(frame)},[playing,clips]);
  useEffect(()=>{ 
   const activeVideo=clips.filter(c=>c.kind==="video"&&c.src&&c.start<=playhead&&c.start+c.duration>playhead).sort((a,b)=>b.start-a.start)[0];
   const videoEl=videoRef.current;
