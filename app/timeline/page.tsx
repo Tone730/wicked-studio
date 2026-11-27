@@ -42,11 +42,11 @@ export default function TimelineStudio(){
    const stopped=new Promise<Blob>((resolve,reject)=>{recorder!.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder!.onstop=()=>resolve(new Blob(chunks,{type:mime}));recorder!.onerror=()=>reject(new Error("Video recording failed"))});
    await audioContext.resume();const startAt=audioContext.currentTime+.15;recorder.start(250);
    for(const source of sources){const c=(source as AudioBufferSourceNode&{wickedClip?:Clip}).wickedClip!;const when=startAt+c.start,offset=Math.min(c.offset,Math.max(0,source.buffer!.duration-.01)),available=Math.max(.01,source.buffer!.duration-offset),playDuration=Math.min(c.duration,available);if(playDuration>0)source.start(when,offset,playDuration)}
-   for(const [id,video] of videos){const c=clips.find(x=>x.id===id)!;const timer=window.setTimeout(()=>{video.currentTime=Math.min(c.offset,Math.max(0,video.duration-.05));void video.play().catch(()=>{})},Math.max(0,c.start*1000));void timer}
    const frame=()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
    while(audioContext.currentTime-startAt<duration){
     const t=Math.max(0,audioContext.currentTime-startAt);ctx.fillStyle="#08070c";ctx.fillRect(0,0,canvas.width,canvas.height);
     const activeVideo=clips.filter(c=>c.kind==="video"&&c.start<=t&&c.start+c.duration>t).sort((a,b)=>b.start-a.start)[0];
+    for(const [id,v] of videos){const c=clips.find(x=>x.id===id)!;const active=c.id===activeVideo?.id;if(active){const target=Math.min(c.offset+t-c.start,Math.max(0,v.duration-.05));if(Math.abs(v.currentTime-target)>.35){try{v.currentTime=target}catch{}}if(v.paused)void v.play().catch(()=>{})}else if(!v.paused)v.pause()}
     const activeImage=clips.filter(c=>c.kind==="image"&&c.start<=t&&c.start+c.duration>t).sort((a,b)=>b.start-a.start)[0];
     const activeVisual=activeVideo||activeImage;
     if(activeVideo){const v=videos.get(activeVideo.id)!;const target=activeVideo.offset+t-activeVideo.start;if(Math.abs(v.currentTime-target)>.35&&Number.isFinite(target)&&target<v.duration-.05){try{v.currentTime=target}catch{}}if(v.readyState>=2){const scale=Math.min(canvas.width/v.videoWidth,canvas.height/v.videoHeight),w=v.videoWidth*scale,h=v.videoHeight*scale;ctx.drawImage(v,(canvas.width-w)/2,(canvas.height-h)/2,w,h)}}
