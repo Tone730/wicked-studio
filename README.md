@@ -40,3 +40,13 @@ This repository contains the current application source and bundled GIF encoder 
 - Typography & Logo Studio
 - Texture Studio
 - Sound Design Studio
+
+## Cloudflare Workers deployment
+
+This repository is configured for the OpenNext Cloudflare adapter. In Cloudflare Workers Builds, use:
+
+- Build command: `npx opennextjs-cloudflare build`
+- Deploy command: `npx wrangler deploy`
+- Root directory: repository root
+
+Set `REPLICATE_API_TOKEN` in the Worker build/deployment environment as a secret for AI image generation. Do not commit secrets to GitHub.
