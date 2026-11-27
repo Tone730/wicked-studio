@@ -4,7 +4,6 @@ type Clip={id:string;name:string;kind:"video"|"audio"|"image"|"text";src?:string
 type Track={id:string,name:string,kind:string};
 const tracks:Track[]=[{id:"video",name:"Video 1",kind:"video"},{id:"overlay",name:"Overlay",kind:"overlay"},{id:"audio",name:"Audio 1",kind:"audio"}];
 const FRAME_RATE=30;
-const FRAME_STEP=1/FRAME_RATE;
 const uid=()=>Math.random().toString(36).slice(2,10);
 export default function TimelineStudio(){
  const [clips,setClips]=useState<Clip[]>([]),[selected,setSelected]=useState(""),[playhead,setPlayhead]=useState(0),[zoom,setZoom]=useState(70),[status,setStatus]=useState("Import media or add a text clip to begin"),[snap,setSnap]=useState(true),[previewing,setPreviewing]=useState(false),[text,setText]=useState("WICKED STUDIO"),[playing,setPlaying]=useState(false),[exporting,setExporting]=useState(false),[exportProgress,setExportProgress]=useState(0),[projectRestored,setProjectRestored]=useState(false);
