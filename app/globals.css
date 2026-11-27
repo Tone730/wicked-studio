@@ -48,3 +48,10 @@
 .asciiFooter{text-align:center;padding:18px;color:#8f849b;font-size:10px}
 @media(max-width:850px){.asciiLayout{grid-template-columns:1fr;padding:0 12px 20px}.asciiControls{display:grid;grid-template-columns:1fr 1fr;gap:12px}.asciiControls h3,.asciiPreset,.asciiControls>p{grid-column:1/-1}.asciiCanvasWrap{min-height:300px}}
 @media(max-width:550px){.asciiHeader{flex-wrap:wrap;padding:12px}.asciiHeader>span{width:100%;max-width:none}.asciiIntro{padding:22px 14px 16px}.asciiLayout{padding:0 8px 16px;gap:8px}.asciiStage{padding:9px}.asciiCanvasWrap{min-height:220px;padding:5px}.asciiControls{padding:12px;grid-template-columns:1fr}.asciiControls h3,.asciiPreset,.asciiControls>p{grid-column:1}.asciiImport span{width:100%}}
+
+/* Editable ASCII text output */
+.asciiTextEditor{display:grid;gap:9px;padding:12px;background:#100d17;border:1px solid #453653;border-radius:8px}
+.asciiTextEditor>div{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#e9ddff;font-size:10px;letter-spacing:.5px}
+.asciiTextEditor>div span{color:#9f93ad;letter-spacing:0}
+.asciiTextEditor textarea{width:100%;min-height:220px;resize:vertical;background:#09070e;color:#e8dcff;border:1px solid #453653;border-radius:6px;padding:12px;font:12px/1.25 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre;tab-size:2}
+.asciiTextEditor button{justify-self:start;border:1px solid #453653;background:#211a2b;color:#eee;border-radius:7px;padding:8px 11px;font-size:10px}
