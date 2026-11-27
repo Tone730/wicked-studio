@@ -23,13 +23,15 @@ export default function AsciiStudio(){
   const ramp=chars||CHARSETS.classic;let output="";
   const lum=new Float32Array(cols*rows);
   for(let i=0;i<cols*rows;i++){const p=i*4;let l=.2126*pixels[p]+.7152*pixels[p+1]+.0722*pixels[p+2];l=Math.max(0,Math.min(255,((l-128)*(contrast/100)+128+brightness)));lum[i]=l;}
-  const matrix=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];\n  const rgb=(hex:string)=>[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];const ga=rgb(gradientStart),gb=rgb(gradientEnd);
+  const matrix=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+  const rgb=(hex:string)=>[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];const ga=rgb(gradientStart),gb=rgb(gradientEnd);
   for(let y=0;y<rows;y++){let line="";for(let x=0;x<cols;x++){
    let l=lum[y*cols+x];if(edgeMode){const left=lum[y*cols+Math.max(0,x-1)],right=lum[y*cols+Math.min(cols-1,x+1)],up=lum[Math.max(0,y-1)*cols+x],down=lum[Math.min(rows-1,y+1)*cols+x];l=Math.min(255,Math.hypot(right-left,down-up)*1.8);}if(dither){const threshold=(matrix[y%4][x%4]/16-.5)*42;l=Math.max(0,Math.min(255,l+threshold));}
    if(invert)l=255-l;
    const index=Math.max(0,Math.min(ramp.length-1,Math.round((1-l/255)*(ramp.length-1))));const ch=ramp[index]||" ";
    line+=ch;
-   if(colorMode==="color")ctx.fillStyle="rgb("+pixels[(y*cols+x)*4]+","+pixels[(y*cols+x)*4+1]+","+pixels[(y*cols+x)*4+2]+")";\n   else if(colorMode==="gradient"||gradient){const t=(x/Math.max(1,cols-1)+y/Math.max(1,rows-1))*.5;ctx.fillStyle="rgb("+ga.map((v,i)=>Math.round(v+(gb[i]-v)*t)).join(",")+")";}
+   if(colorMode==="color")ctx.fillStyle="rgb("+pixels[(y*cols+x)*4]+","+pixels[(y*cols+x)*4+1]+","+pixels[(y*cols+x)*4+2]+")";
+   else if(colorMode==="gradient"||gradient){const t=(x/Math.max(1,cols-1)+y/Math.max(1,rows-1))*.5;ctx.fillStyle="rgb("+ga.map((v,i)=>Math.round(v+(gb[i]-v)*t)).join(",")+")";}
    else if(colorMode==="green")ctx.fillStyle="#65ff9a";
    else if(colorMode==="amber")ctx.fillStyle="#ffbd59";
    else ctx.fillStyle=fg;
@@ -40,6 +42,7 @@ export default function AsciiStudio(){
  const renderCurrent=useCallback(()=>{if(source?.kind==="image"&&imageRef.current)draw(imageRef.current);if(source?.kind==="video"&&videoRef.current)draw(videoRef.current)},[source,draw]);
  useEffect(()=>{renderCurrent()},[renderCurrent]);
  useEffect(()=>{if(!playing||source?.kind!=="video")return;const tick=()=>{renderCurrent();if(videoRef.current&&!videoRef.current.paused)raf.current=requestAnimationFrame(tick)};raf.current=requestAnimationFrame(tick);return()=>cancelAnimationFrame(raf.current)},[playing,source,renderCurrent]);
+ useEffect(()=>{if(overlayMode==="static"||!source)return;let id=0;const tick=()=>{renderCurrent();id=requestAnimationFrame(tick)};id=requestAnimationFrame(tick);return()=>cancelAnimationFrame(id)},[overlayMode,source,renderCurrent]);
  useEffect(()=>()=>{if(source?.url)URL.revokeObjectURL(source.url);cancelAnimationFrame(raf.current);recorder.current?.stop()},[source?.url]);
  const load=(file?:File,kind:"image"|"video"="image")=>{if(!file)return;const url=URL.createObjectURL(file);setSource({url,kind,name:file.name});setPlaying(false);setStatus("Loaded "+file.name);if(kind==="image"){const im=new Image();im.onload=()=>{imageRef.current=im;draw(im)};im.onerror=()=>setStatus("This image could not be opened");im.src=url;}else{const v=videoRef.current;if(v){v.src=url;v.playbackRate=playbackRate;v.onloadedmetadata=()=>{draw(v);setStatus("Video ready · press Play to convert frames live")};}}};
  const download=(blob:Blob,name:string)=>{const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500)};
@@ -59,17 +62,22 @@ export default function AsciiStudio(){
    {charset==="custom"&&<label>Custom character ramp<input value={customChars} onChange={e=>setCustomChars(e.target.value)} maxLength={160}/></label>}
    <label>Output width <strong>{width} columns</strong><input type="range" min="30" max="240" step="5" value={width} onChange={e=>setWidth(+e.target.value)}/></label>
    <label>Character size <strong>{fontSize}px</strong><input type="range" min="6" max="18" value={fontSize} onChange={e=>setFontSize(+e.target.value)}/></label>
-   <label>Image fitting<select value={fit} onChange={e=>setFit(e.target.value)}><option value="contain">Contain</option><option value="cover">Cover / crop</option><option value="stretch">Stretch</option></select></label>\n   <label>Font<select value={font} onChange={e=>setFont(e.target.value)}><option value="monospace">Monospace</option><option value="Courier New">Courier New</option><option value="ui-monospace">System Mono</option></select></label>
+   <label>Image fitting<select value={fit} onChange={e=>setFit(e.target.value)}><option value="contain">Contain</option><option value="cover">Cover / crop</option><option value="stretch">Stretch</option></select></label>
+   <label>Font<select value={font} onChange={e=>setFont(e.target.value)}><option value="monospace">Monospace</option><option value="Courier New">Courier New</option><option value="ui-monospace">System Mono</option></select></label>
    <label>Detail / aspect <strong>{detail.toFixed(1)}×</strong><input type="range" min=".6" max="1.6" step=".1" value={detail} onChange={e=>setDetail(+e.target.value)}/></label>
    <label>Brightness <strong>{brightness}</strong><input type="range" min="-100" max="100" value={brightness} onChange={e=>setBrightness(+e.target.value)}/></label>
    <label>Contrast <strong>{contrast}%</strong><input type="range" min="0" max="220" value={contrast} onChange={e=>setContrast(+e.target.value)}/></label>
    <label>Color mode<select value={colorMode} onChange={e=>setColorMode(e.target.value)}><option value="mono">Single color</option><option value="color">Original image colors</option><option value="gradient">Color gradient</option><option value="green">Terminal green</option><option value="amber">Retro amber</option></select></label>
-   {colorMode==="mono"&&<label>Text color<input type="color" value={fg} onChange={e=>setFg(e.target.value)}/></label>}\n   {(colorMode==="gradient"||gradient)&&<><label>Gradient start<input type="color" value={gradientStart} onChange={e=>setGradientStart(e.target.value)}/></label><label>Gradient end<input type="color" value={gradientEnd} onChange={e=>setGradientEnd(e.target.value)}/></label></>}
+   {colorMode==="mono"&&<label>Text color<input type="color" value={fg} onChange={e=>setFg(e.target.value)}/></label>}
+   {(colorMode==="gradient"||gradient)&&<><label>Gradient start<input type="color" value={gradientStart} onChange={e=>setGradientStart(e.target.value)}/></label><label>Gradient end<input type="color" value={gradientEnd} onChange={e=>setGradientEnd(e.target.value)}/></label></>}
    <label>Background<input type="color" value={bg} onChange={e=>setBg(e.target.value)}/></label>
    <label className="asciiCheck"><input type="checkbox" checked={invert} onChange={e=>setInvert(e.target.checked)}/> Invert luminance</label>
-   <label className="asciiCheck"><input type="checkbox" checked={dither} onChange={e=>setDither(e.target.checked)}/> Ordered dithering</label>\n   <label className="asciiCheck"><input type="checkbox" checked={edgeMode} onChange={e=>setEdgeMode(e.target.checked)}/> Edge detection / outline mode</label>\n   <div className="asciiPreset"><b>ANIMATED TEXT OVERLAY</b><label>Overlay text<input value={overlayText} onChange={e=>setOverlayText(e.target.value)} maxLength={80}/></label><label>Animation<select value={overlayMode} onChange={e=>setOverlayMode(e.target.value)}><option value="static">Static</option><option value="scroll">Scrolling</option><option value="pulse">Pulse</option></select></label><label>Overlay color<input type="color" value={overlayColor} onChange={e=>setOverlayColor(e.target.value)}/></label></div>
+   <label className="asciiCheck"><input type="checkbox" checked={dither} onChange={e=>setDither(e.target.checked)}/> Ordered dithering</label>
+   <label className="asciiCheck"><input type="checkbox" checked={edgeMode} onChange={e=>setEdgeMode(e.target.checked)}/> Edge detection / outline mode</label>
+   <div className="asciiPreset"><b>ANIMATED TEXT OVERLAY</b><label>Overlay text<input value={overlayText} onChange={e=>setOverlayText(e.target.value)} maxLength={80}/></label><label>Animation<select value={overlayMode} onChange={e=>setOverlayMode(e.target.value)}><option value="static">Static</option><option value="scroll">Scrolling</option><option value="pulse">Pulse</option></select></label><label>Overlay color<input type="color" value={overlayColor} onChange={e=>setOverlayColor(e.target.value)}/></label></div>
    <div className="asciiPreset"><b>QUICK PRESETS</b><div><button onClick={()=>{setCharset("classic");setColorMode("mono");setFg("#e8dcff");setBg("#09070e");setWidth(120);setContrast(100);setBrightness(0);setInvert(false)}}>Classic</button><button onClick={()=>{setCharset("matrix");setColorMode("green");setBg("#020b05");setWidth(150);setContrast(140)}}>Matrix</button><button onClick={()=>{setCharset("blocks");setColorMode("color");setBg("#050505");setWidth(160)}}>Color blocks</button><button onClick={()=>{setCharset("binary");setColorMode("green");setBg("#020b05");setWidth(130)}}>Binary</button></div></div>
-   {source?.kind==="video"&&<label>Playback speed <strong>{playbackRate.toFixed(2)}×</strong><input type="range" min=".25" max="2" step=".25" value={playbackRate} onChange={e=>{const n=+e.target.value;setPlaybackRate(n);if(videoRef.current)videoRef.current.playbackRate=n}}/></label>}\n   <p>Large output widths and video processing use more device memory. For best results, start around 100–140 columns.</p>
+   {source?.kind==="video"&&<label>Playback speed <strong>{playbackRate.toFixed(2)}×</strong><input type="range" min=".25" max="2" step=".25" value={playbackRate} onChange={e=>{const n=+e.target.value;setPlaybackRate(n);if(videoRef.current)videoRef.current.playbackRate=n}}/></label>}
+   <p>Large output widths and video processing use more device memory. For best results, start around 100–140 columns.</p>
   </aside></div>
   <footer className="asciiFooter">Wicked Studio ASCII Studio · Image and video conversion runs on your device. Video export uses browser MediaRecorder support.</footer>
  </main>;
