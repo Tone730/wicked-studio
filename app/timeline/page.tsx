@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 type Clip={id:string;name:string;kind:"video"|"audio"|"image"|"text";src?:string;start:number;duration:number;offset:number;color:string;text?:string};
 type Track={id:string,name:string,kind:string};
 const tracks:Track[]=[{id:"video",name:"Video 1",kind:"video"},{id:"overlay",name:"Overlay",kind:"overlay"},{id:"audio",name:"Audio 1",kind:"audio"}];
@@ -16,7 +16,7 @@ export default function TimelineStudio(){
  const split=()=>{if(!selectedClip)return;const cut=playhead-selectedClip.start;if(cut<=.05||cut>=selectedClip.duration-.05){setStatus("Move the playhead inside the selected clip to split it");return}const second={...selectedClip,id:uid(),name:selectedClip.name+" (split)",start:playhead,offset:selectedClip.offset+cut,duration:selectedClip.duration-cut};patch(selectedClip.id,{duration:cut});setClips(v=>[...v,second]);setSelected(second.id);setStatus("Clip split at "+playhead.toFixed(2)+"s")};
  const duplicate=()=>{if(!selectedClip)return;const c={...selectedClip,id:uid(),name:selectedClip.name+" copy",start:selectedClip.start+selectedClip.duration};setClips(v=>[...v,c]);setSelected(c.id)};
  const moveStart=(id:string,x:number)=>{const raw=Math.max(0,x/scale);const nearest=clips.filter(c=>c.id!==id).flatMap(c=>[c.start,c.start+c.duration]);const value=snap?nearest.reduce((best,n)=>Math.abs(n-raw)<Math.abs(best-raw)?n:best,raw):raw;patch(id,{start:Math.max(0,value)})};
- const save=()=>{const data={format:"wicked-timeline-project",version:1,tracks,clips,playhead,zoom};const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));a.download="wicked-timeline.wickedproject";a.click();setStatus("Timeline project exported (media files remain separate)")};
+ const save=()=>{const data={format:"wicked-timeline-project",version:1,tracks,clips,playhead,zoom};const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));a.download="wicked-timeline.wickedproject";a.click();setStatus("Self-contained timeline project exported with embedded media")};
  const open=async(f?:File)=>{if(!f)return;try{const d=JSON.parse(await f.text());if(d.format!=="wicked-timeline-project"||!Array.isArray(d.clips))throw Error();setClips(d.clips);setPlayhead(d.playhead||0);setSelected(d.clips[0]?.id||"");setStatus("Timeline project restored with embedded media") }catch{setStatus("Invalid timeline project file")}};
  const preview=clips.find(c=>c.start<=playhead&&c.start+c.duration>playhead&&c.kind!=="audio")||selectedClip;
  useEffect(()=>{if(!playing)return;const timer=window.setInterval(()=>setPlayhead(p=>{const end=Math.max(20,...clips.map(c=>c.start+c.duration));if(p>=end){setPlaying(false);return 0}return p+.05}),50);return()=>window.clearInterval(timer)},[playing,clips]);
