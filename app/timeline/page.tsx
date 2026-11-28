@@ -44,7 +44,21 @@ export default function TimelineStudio(){
  const addText=()=>{const c:Clip={id:uid(),name:"Text overlay",kind:"text",start:playhead,duration:4,offset:0,color:"#8b5cf6",text};setClips(v=>[...v,c]);setSelected(c.id);setStatus("Text overlay added")};
  const patch=(id:string,p:Partial<Clip>)=>setClips(v=>v.map(c=>c.id===id?{...c,...p}:c));
  const remove=()=>{if(!selectedClip)return;setClips(v=>v.filter(c=>c.id!==selected));setSelected("")};
- const split=()=>{if(!selectedClip)return;const cut=playhead-selectedClip.start;if(cut<=.05||cut>=selectedClip.duration-.05){setStatus("Move the playhead inside the selected clip to split it");return}const second={...selectedClip,id:uid(),name:selectedClip.name+" (split)",start:playhead,offset:selectedClip.offset+cut,duration:selectedClip.duration-cut};patch(selectedClip.id,{duration:cut});setClips(v=>[...v,second]);setSelected(second.id);setStatus("Clip split at "+playhead.toFixed(2)+"s")};
+ const split=()=>{
+  if(!selectedClip)return;
+  const cut=playhead-selectedClip.start;
+  if(cut<=.05||cut>=selectedClip.duration-.05){setStatus("Move the playhead inside the selected clip to split it");return}
+  const boundaryTime=Math.round(cut*FRAME_RATE)/FRAME_RATE;
+  const exact=selectedClip.keyframes?.find(k=>Math.abs(k.time-boundaryTime)<1/FRAME_RATE/2);
+  const boundary:Keyframe={time:boundaryTime,x:animatedValue(selectedClip,"x",playhead,selectedClip.x??0),y:animatedValue(selectedClip,"y",playhead,selectedClip.y??0),scale:animatedValue(selectedClip,"scale",playhead,selectedClip.scale??100),rotation:animatedValue(selectedClip,"rotation",playhead,selectedClip.rotation??0),opacity:animatedValue(selectedClip,"opacity",playhead,selectedClip.opacity??1),volume:animatedValue(selectedClip,"volume",playhead,selectedClip.volume??1),easing:exact?.easing??"linear"};
+  const before=(selectedClip.keyframes??[]).filter(k=>k.time<boundaryTime-1/FRAME_RATE/2);
+  const after=(selectedClip.keyframes??[]).filter(k=>k.time>boundaryTime+1/FRAME_RATE/2).map(k=>({...k,time:Math.round((k.time-boundaryTime)*FRAME_RATE)/FRAME_RATE}));
+  const firstKeys=selectedClip.keyframes?.length?[...before,boundary].sort((a,b)=>a.time-b.time):undefined;
+  const secondKeys=selectedClip.keyframes?.length?[{...boundary,time:0},...after].sort((a,b)=>a.time-b.time):undefined;
+  const second={...selectedClip,id:uid(),name:selectedClip.name+" (split)",start:playhead,offset:selectedClip.offset+cut,duration:selectedClip.duration-cut,keyframes:secondKeys};
+  patch(selectedClip.id,{duration:cut,keyframes:firstKeys});
+  setClips(v=>[...v,second]);setSelected(second.id);setStatus("Clip split at "+playhead.toFixed(2)+"s · animation keyframes preserved on both clips")
+ };
  const duplicate=()=>{if(!selectedClip)return;const c={...selectedClip,id:uid(),name:selectedClip.name+" copy",start:selectedClip.start+selectedClip.duration};setClips(v=>[...v,c]);setSelected(c.id)};
  const moveStart=(id:string,x:number)=>{const raw=Math.max(0,x/scale);const nearest=clips.filter(c=>c.id!==id).flatMap(c=>[c.start,c.start+c.duration]);const value=snap?nearest.reduce((best,n)=>Math.abs(n-raw)<Math.abs(best-raw)?n:best,raw):raw;patch(id,{start:Math.max(0,value)})};
  const save=()=>{const data={format:"wicked-timeline-project",version:1,tracks,clips,playhead,zoom};const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));a.download="wicked-timeline.wickedproject";a.click();setStatus("Self-contained timeline project exported with embedded media")};
